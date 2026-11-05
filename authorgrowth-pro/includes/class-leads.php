@@ -20,7 +20,7 @@ final class AGP_Leads {
    PRIMARY KEY  (id),
    UNIQUE KEY email_book (email,book_id)
   ) " . $wpdb->get_charset_collate() . ';' );
-  update_option( 'agp_leads_schema', '1', false );
+  if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( self::table() ) ) ) === self::table() ) { update_option( 'agp_leads_schema', '1', false ); }
  }
  public static function hooks() {
   add_action( 'init', function () { if ( '1' !== get_option( 'agp_leads_schema' ) ) { self::install(); } } );
@@ -40,7 +40,7 @@ final class AGP_Leads {
   add_filter( 'wp_privacy_personal_data_erasers', function ( $items ) { $items['agp'] = array( 'eraser_friendly_name' => 'AuthorGrowth leads', 'callback' => array( __CLASS__, 'privacy_erase' ) ); return $items; } );
  }
  public static function private_dir() {
-  if ( ! defined( 'AGP_PRIVATE_DIR' ) ) { return false; }
+  if ( ! defined( 'AGP_PRIVATE_DIR' ) || ! is_string( AGP_PRIVATE_DIR ) || '' === AGP_PRIVATE_DIR ) { return false; }
   $dir = realpath( AGP_PRIVATE_DIR );
   if ( ! $dir || ! is_writable( $dir ) ) { return false; }
   // A separate, existing directory outside every known public root is mandatory.
@@ -59,6 +59,7 @@ final class AGP_Leads {
  public static function public_book( $id ) { return 'agp_book' === get_post_type( $id ) && 'publish' === get_post_status( $id ) && '' === (string) get_post_field( 'post_password', $id ); }
  public static function input( $key ) { return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : ''; }
  public static function form( $attrs ) {
+  if ( ! AGP_Settings::enabled( 'leads' ) ) { return ''; }
   $attrs = shortcode_atts( array( 'book' => get_the_ID() ), $attrs ); $id = absint( $attrs['book'] );
   if ( ! self::public_book( $id ) || ! self::pdf( $id ) ) { return ''; }
   $uid = wp_unique_id( 'agp-chapter-' );
@@ -78,7 +79,7 @@ final class AGP_Leads {
  public static function capture() {
   global $wpdb;
   $id = absint( self::input( 'book' ) );
-  if ( ! wp_verify_nonce( self::input( 'agp_nonce' ), 'agp_capture_' . $id ) || ! self::public_book( $id ) || ! self::pdf( $id ) ) { wp_die( 'Chapter unavailable. Reload the form and try again.', '', array( 'response' => 400 ) ); }
+  if ( ! AGP_Settings::enabled( 'leads' ) || ! wp_verify_nonce( self::input( 'agp_nonce' ), 'agp_capture_' . $id ) || ! self::public_book( $id ) || ! self::pdf( $id ) ) { wp_die( 'Chapter unavailable. Reload the form and try again.', '', array( 'response' => 400 ) ); }
   $email = strtolower( trim( self::input( 'email' ) ) );
   if ( ! is_email( $email ) || strlen( $email ) > 254 || self::input( 'website' ) !== '' ) { wp_die( 'Invalid submission.', '', array( 'response' => 400 ) ); }
   // Atomic per-hour counters. Store only keyed hashes, never raw IP addresses.
@@ -90,8 +91,8 @@ final class AGP_Leads {
   $ok = $existing ? $wpdb->update( self::table(), $data, array( 'id' => $existing ) ) : $wpdb->insert( self::table(), $data );
   if ( false === $ok ) { wp_die( 'Unable to save request. Try again later.', '', array( 'response' => 503 ) ); }
   $url = add_query_arg( array( 'action' => 'agp_download', 'token' => $token ), admin_url( 'admin-post.php' ) );
-  if ( ! wp_mail( $email, 'Your free chapter', "Download your requested chapter (valid once for 30 minutes):\n" . $url . "\nIf you did not request this, ignore this email." ) ) {
-   $wpdb->update( self::table(), array( 'token_hash' => null ), array( 'email' => $email, 'book_id' => $id ) );
+  if ( ! AGP_Settings::mail( $email, 'Your free chapter', "Download your requested chapter (valid once for 30 minutes):\n" . $url . "\nIf you did not request this, ignore this email." ) ) {
+   $wpdb->update( self::table(), array( 'token_hash' => null ), array( 'email' => $email, 'book_id' => $id, 'token_hash' => $data['token_hash'] ) );
    wp_die( 'Email delivery could not be started. Please try again later.', '', array( 'response' => 503 ) );
   }
   wp_die( 'Check your inbox for your chapter link. This does not subscribe you unless you checked the marketing box and confirm your email by using the link.', 'Chapter requested', array( 'response' => 200 ) );
@@ -150,7 +151,7 @@ final class AGP_Leads {
  }
  public static function admin() {
   if ( ! current_user_can( 'manage_options' ) ) { return; }
-  global $wpdb; $page = max( 1, absint( $_GET['paged'] ?? 1 ) );
+  global $wpdb; $page = isset( $_GET['paged'] ) && is_scalar( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
   $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . self::table() . ' ORDER BY id DESC LIMIT 50 OFFSET %d', ( $page - 1 ) * 50 ) );
   echo '<div class="wrap"><h1>Reader Leads</h1><p>Only verified, consenting readers may receive marketing. Delete a lead to withdraw consent and invalidate links.</p>';
   echo '<p>Private PDF storage: ' . esc_html( self::private_dir() ? 'Available' : 'Not configured — see README' ) . '</p>';
@@ -178,8 +179,11 @@ final class AGP_Leads {
  public static function delete() { self::guard( 'agp_delete_lead' ); global $wpdb; $wpdb->delete( self::table(), array( 'id' => absint( self::input( 'id' ) ) ) ); wp_safe_redirect( admin_url( 'admin.php?page=agp-leads' ) ); exit; }
  public static function cleanup() {
   global $wpdb;
+  $s = AGP_Settings::get();
+  if ( $s['lead_days'] > 0 ) { $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . self::table() . ' WHERE verified_at IS NOT NULL AND verified_at<%s', gmdate( 'Y-m-d H:i:s', time() - $s['lead_days'] * DAY_IN_SECONDS ) ) ); }
+  if ( $s['click_days'] > 0 ) { $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . AGP_Clicks::table() . ' WHERE day<%s', gmdate( 'Y-m-d', time() - $s['click_days'] * DAY_IN_SECONDS ) ) ); }
   $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name < %s", $wpdb->esc_like( '_agp_rate_' ) . '%', '_agp_rate_' . gmdate( 'YmdH', time() - 7200 ) ) );
-  $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . self::table() . ' WHERE verified_at IS NULL AND created_at < %s', gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS ) ) );
+  $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . self::table() . ' WHERE verified_at IS NULL AND created_at < %s', gmdate( 'Y-m-d H:i:s', time() - AGP_Settings::get()['pending_days'] * DAY_IN_SECONDS ) ) );
  }
  public static function privacy_export( $email, $page = 1 ) {
   global $wpdb; $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE email=%s ORDER BY id LIMIT 100 OFFSET %d', strtolower( $email ), ( max( 1, (int) $page ) - 1 ) * 100 ) ); $data = array();

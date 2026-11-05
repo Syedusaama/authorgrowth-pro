@@ -1,4 +1,6 @@
 <?php
+function is_email($v){return filter_var($v,FILTER_VALIDATE_EMAIL);}
+function get_option($key,$default=false){return $default;}
 /** Isolated shortcode and redirect tests; not WordPress integration tests. */
 define('ABSPATH',__DIR__); define('DAY_IN_SECONDS',86400); define('AGP_FILE',__FILE__); define('AGP_VERSION','0.3.0');
 class AGP_Leads {
@@ -40,6 +42,7 @@ class ClickDB {
  public function get_results($q){return array((object)array('day'=>gmdate('Y-m-d'),'book_id'=>123,'retailer'=>'www.amazon.com','clicks'=>5));}
 }
 $wpdb=new ClickDB();
+require __DIR__ . '/../authorgrowth-pro/includes/class-settings.php';
 require __DIR__.'/../authorgrowth-pro/includes/class-clicks.php';
 require __DIR__.'/../authorgrowth-pro/includes/class-promotions.php';
 $n=0;

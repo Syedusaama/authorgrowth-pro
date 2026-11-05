@@ -1,10 +1,14 @@
 <?php
+function get_option($key,$default=false){return $default;}
 /** Isolated request-handler tests. No WordPress/database/mail integration implied. */
 $root = sys_get_temp_dir() . '/agp-public-' . getmypid(); mkdir($root);
 $private = sys_get_temp_dir() . '/agp-private-' . getmypid(); mkdir($private);
 define('ABSPATH', $root . '/'); define('AGP_PRIVATE_DIR', $private);
 $_SERVER['DOCUMENT_ROOT'] = $root; $_SERVER['REMOTE_ADDR'] = '192.0.2.1';
+require __DIR__ . '/../authorgrowth-pro/includes/class-settings.php';
 require __DIR__ . '/../authorgrowth-pro/includes/class-leads.php';
+function sanitize_hex_color($v){return preg_match('/^#(?:[a-f0-9]{3}|[a-f0-9]{6})$/i',$v)?$v:null;}
+function sanitize_text_field($v){return strip_tags($v);}
 class StopRequest extends Exception { public $status; public function __construct($msg, $status) { parent::__construct($msg); $this->status=$status; } }
 function wp_die($msg, $title='', $args=array()) { throw new StopRequest($msg, $args['response'] ?? 500); }
 function wp_unslash($s) { return stripslashes($s); }

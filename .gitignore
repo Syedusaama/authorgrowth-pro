@@ -1,3 +1,5 @@
 /dist/*.zip
 /vendor/
 .env
+
+/dist/*.sha256

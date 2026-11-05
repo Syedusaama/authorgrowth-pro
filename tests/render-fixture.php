@@ -1,0 +1,8 @@
+<?php
+/** Static browser fixture only: fabricated test content must never be imported into a site. */
+ob_start();require __DIR__.'/release-test.php';ob_end_clean();
+$GLOBALS['comments']=array((object)array('comment_ID'=>77,'comment_author'=>'Test fixture only','comment_content'=>'Synthetic test content for layout testing only, not a reader endorsement.','comment_post_ID'=>123));
+$GLOBALS['options']['agp_settings']=array();$GLOBALS['meta']['_agp_launch_at']=gmdate('Y-m-d\TH:i',time()+86400);
+$base=dirname(__DIR__);
+?>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AuthorGrowth RC static fixture</title><style>body{font-family:system-ui;margin:16px;background:#f5f6fa}main{max-width:1100px;margin:auto}img{max-width:100%}button,input,textarea,select{font:inherit}input{box-sizing:border-box}*{box-sizing:border-box}</style><style><?php readfile($base.'/authorgrowth-pro/assets/promotions.css'); ?></style></head><body><main><h1>Static test fixture — not a WordPress site</h1><?php echo AGP_Launches::shortcode(array('book'=>123));echo AGP_Reviews::form(array('book'=>123));echo AGP_Reviews::display(array('book'=>123,'layout'=>'slider')); ?></main><script><?php readfile($base.'/authorgrowth-pro/assets/release.js'); ?></script><script>document.body.dataset.overflow=String(document.documentElement.scrollWidth>innerWidth);document.body.dataset.countdown=String(document.querySelector('[data-agp-launch]').textContent.includes('h'));document.body.dataset.slider=String(!document.querySelector('[data-agp-controls]').hidden);</script></body></html>

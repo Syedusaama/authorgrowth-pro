@@ -14,7 +14,7 @@ final class AGP_Clicks {
    PRIMARY KEY  (id),
    UNIQUE KEY day_book_retailer (day,book_id,retailer)
   ) " . $wpdb->get_charset_collate() . ';' );
-  update_option( 'agp_clicks_schema', '1', false );
+  if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( self::table() ) ) ) === self::table() ) { update_option( 'agp_clicks_schema', '1', false ); }
  }
  public static function hooks() {
   add_action( 'init', function () { if ( '1' !== get_option( 'agp_clicks_schema' ) ) { self::install(); } } );
@@ -22,17 +22,18 @@ final class AGP_Clicks {
   add_action( 'admin_post_nopriv_agp_click', array( __CLASS__, 'redirect' ) );
   add_action( 'admin_menu', function () { add_submenu_page( 'authorgrowth-pro', 'Click Analytics', 'Click Analytics', 'manage_options', 'agp-analytics', array( __CLASS__, 'admin' ) ); } );
  }
- public static function destination( $id ) {
+ public static function destination( $id, $kind = 'buy' ) {
   if ( ! AGP_Leads::public_book( $id ) ) { return ''; }
-  $url = AGP_Books::sanitize( 'buy_url', get_post_meta( $id, '_agp_buy_url', true ) );
+  if ( ! in_array( $kind, array( 'buy', 'preorder' ), true ) || ( 'preorder' === $kind && ( ! AGP_Settings::enabled( 'launches' ) || AGP_Launches::timestamp( $id ) <= time() ) ) ) { return ''; }
+  $url = AGP_Books::sanitize( 'buy_url', get_post_meta( $id, 'preorder' === $kind ? '_agp_preorder_url' : '_agp_buy_url', true ) );
   $parts = wp_parse_url( $url );
   if ( ! $url || ! is_array( $parts ) || empty( $parts['host'] ) || isset( $parts['user'] ) || isset( $parts['pass'] ) || ( isset( $parts['port'] ) && ! in_array( $parts['port'], array( 80, 443 ), true ) ) ) { return ''; }
   return $url;
  }
- public static function button( $id, $label = 'Buy Now' ) {
-  $url = self::destination( $id ); if ( ! $url ) { return ''; }
+ public static function button( $id, $label = 'Buy Now', $kind = 'buy' ) {
+  $url = self::destination( $id, $kind ); if ( ! $url ) { return ''; }
   // POST reduces prefetch/link-scanner inflation. Destination is never accepted from a visitor.
-  return '<form class="agp-buy-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="agp_click"><input type="hidden" name="book" value="' . esc_attr( $id ) . '">' . wp_nonce_field( 'agp_click_' . $id, 'agp_nonce', false, false ) . '<button class="agp-buy-button wp-element-button" type="submit">' . esc_html( $label ) . '</button></form>';
+  return '<form class="agp-buy-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="agp_click"><input type="hidden" name="book" value="' . esc_attr( $id ) . '"><input type="hidden" name="kind" value="' . esc_attr( $kind ) . '">' . wp_nonce_field( ( 'preorder' === $kind ? 'agp_preorder_' : 'agp_click_' ) . $id, 'agp_nonce', false, false ) . '<button class="agp-buy-button wp-element-button" type="submit">' . esc_html( $label ) . '</button></form>';
  }
  public static function eligible( $server ) {
   $ua = is_string( $server['HTTP_USER_AGENT'] ?? null ) ? $server['HTTP_USER_AGENT'] : '';
@@ -42,9 +43,9 @@ final class AGP_Clicks {
  }
  public static function redirect() {
   if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) { wp_die( 'Use the book button to continue.', '', array( 'response' => 405 ) ); }
-  $id = absint( AGP_Leads::input( 'book' ) ); $url = self::destination( $id );
-  if ( ! $url || ! wp_verify_nonce( AGP_Leads::input( 'agp_nonce' ), 'agp_click_' . $id ) ) { wp_die( 'Book link unavailable. Reload the book page and try again.', '', array( 'response' => 403 ) ); }
-  if ( self::eligible( $_SERVER ) && AGP_Leads::rate( 'click:' . (string) ( $_SERVER['REMOTE_ADDR'] ?? 'unknown' ), 60 ) ) {
+  $id = absint( AGP_Leads::input( 'book' ) ); $kind = AGP_Leads::input( 'kind' ) ?: 'buy'; $url = self::destination( $id, $kind );
+  if ( ! $url || ! wp_verify_nonce( AGP_Leads::input( 'agp_nonce' ), ( 'preorder' === $kind ? 'agp_preorder_' : 'agp_click_' ) . $id ) ) { wp_die( 'Book link unavailable. Reload the book page and try again.', '', array( 'response' => 403 ) ); }
+  if ( AGP_Settings::enabled( 'analytics' ) && self::eligible( $_SERVER ) && AGP_Leads::rate( 'click:' . (string) ( $_SERVER['REMOTE_ADDR'] ?? 'unknown' ), 60 ) ) {
    global $wpdb;
    $host = strtolower( wp_parse_url( $url, PHP_URL_HOST ) );
    $wpdb->query( $wpdb->prepare( 'INSERT INTO ' . self::table() . ' (day,book_id,retailer,clicks) VALUES (%s,%d,%s,1) ON DUPLICATE KEY UPDATE clicks=clicks+1', gmdate( 'Y-m-d' ), $id, $host ) );

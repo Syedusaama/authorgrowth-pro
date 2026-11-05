@@ -1,35 +1,55 @@
-# Phase 3 review
+# AuthorGrowth Pro 0.4.0-rc.1 — review candidate
 
-Branch: `development/phase-3`, based on Phase 2 commit `92b355c`.
+Branch: `development/phase-4`, based on Phase 3 commit `6cf1349`. This is not a production-readiness certification.
 
 ## Delivered
 
-- Required `[agp_book]`, `[agp_books]`, and `[agp_floating_cta]` shortcodes, responsive grid/list cards, covers/titles/descriptions, selected-book collections, constrained color/button options and one in-flow sticky CTA per page.
-- Existing Book Manager retailer URL powers nonce-protected POST buttons in cards, sticky bars and native single-book content. Server-side destination validation ignores visitor-supplied URLs; only published unprotected books qualify.
-- Aggregate UTC day/book/retailer-host counters, atomic SQL increment, and admin-only reports with 7/30/90-day filters, daily/ISO-week/monthly grouping and individual-book filter. Reports distinguish clicks from sales and unique readers.
-- Known-bot/prefetch exclusions, hashed-IP hourly rate limits, DNT/GPC opt-out and no visitor event log/cookies.
-- Navy/white/orange interface and local lightweight CSS without external libraries or JavaScript dependencies.
-- Existing Phase 1/2 modules retained, with tests rerun. Version 0.3.0 ZIP and installation/upgrade/privacy/shortcode documentation.
+- Phase 1 Book Manager/dashboard/native editor, Phase 2 private chapter/lead flows, and Phase 3 promotion/aggregate analytics preserved.
+- Book launch UTC date/time, separate validated preorder destination/nonce purpose, coming-soon card, progressive countdown, post-launch Buy Now switch, purpose-specific verified waitlist with admin list/delete/CSV and privacy integration.
+- Reader review form, optional rating and publication consent; pending-by-default native comment storage; admin approval/spam/trash/delete; approved-only cards and manual accessible slider. No live seed or generated reviews.
+- Global branding/colors, public module controls, plugin-only email sender configuration, configurable retention, diagnostics and three-step setup guidance.
+- Review metadata privacy export and review erasure before native comment anonymization; configurable daily cleanup; safe typed preorder redirects and sender-header validation.
+- Audit fix: chapter mail-failure invalidation only revokes the token issued by that failed request, avoiding invalidation of a newer concurrent token. Missing-table failures do not set successful schema markers.
+- Installable RC ZIP, bundled readme/license, automated test/package scripts, installation/upgrade documentation, SECURITY.md and RELEASE-CHECKLIST.md.
 
 ## Executed validation
 
-- PHP 8.4.24 syntax checks: all 10 plugin/test PHP files passed.
-- Phase 1 suite: 13 assertions passed.
-- Phase 2 suite: 30 assertions passed; download subprocess suite: 6 scenarios passed.
-- Phase 3 suite: 34 assertions passed for safe destinations, ignoring arbitrary redirect parameters, invalid nonce/method handling, bot/prefetch/DNT/GPC filtering, rate-limited counting without blocking redirects, aggregate-only write parameters, period grouping, public-book visibility, escaping, bounded options/queries, list rendering, sticky deduplication, admin permissions and malformed report filters.
-- Updated ZIP build and `unzip -t`: passed.
-- `git diff --check`: passed.
+All available automated suites were run on PHP 8.4.24 with local WordPress/database/mail doubles:
 
-These are PHP CLI tests with WordPress/database doubles. PHP uses the previously extracted local Debian CLI under `/tmp/agp-php`. No environment configuration was published or changed.
+| Check | Result |
+| --- | --- |
+| PHP syntax checks | All 17 plugin/test PHP files passed |
+| Phase 1 book suite | 13 assertions passed |
+| Phase 2 lead suite | 30 assertions passed |
+| Phase 3 promotion/analytics suite | 34 assertions passed |
+| Phase 4 settings/launch/review/admin/privacy suite | 71 assertions passed |
+| Bootstrap/schema upgrade contracts (fresh and Phases 1–3) | 31 assertions passed |
+| Download streaming/rejection subprocess scenarios | 6 passed |
+| Private/public/missing/symlink storage boundary scenarios | 5 passed |
+| Countdown/slider JavaScript doubles | 7 assertions passed |
+| JavaScript syntax | Passed |
+| ZIP creation and integrity | Passed |
+| ZIP source/header/version/content inspection and SHA-256 | Passed |
+| git diff --check | Passed |
 
-## Unverified integration tests / release gates
+The Phase 4 suite exercises new/public forms and display callbacks, dashboard/metaboxes/admin screens and all wizard steps, capability and nonce denials, default modules, module disabling, invalid dates/ratings/consent, escaping, waitlist capture/mail failure/hash/confirmation, preorder destination gates, pending reviews/moderation, mail sender header safety, privacy and retention query contracts. Earlier suites cover the existing shortcode layouts, book saves, chapter capture and PDF streaming. Bootstrap contracts simulate old version markers and table existence; they do not execute real database migrations.
 
-No live WordPress/database/mail setup was available. Activation and upgrade schema creation, actual MySQL/MariaDB atomic increments and race handling, HTTP redirect headers, full-page cache/nonce behavior, real theme layouts, browser/mobile/keyboard visuals, Gutenberg/Elementor integration, and minimum PHP 8.1/WordPress 6.5 remain unverified. Phase 1/2 mail delivery, uploads, WordPress permissions/REST behavior, privacy tools and scheduled retention also remain unverified in a live site. CLI double tests do not establish those behaviors.
+The reproducible test command is `PHP_BIN=/path/to/php ./scripts/test.sh`. This instance used `/tmp/agp-php/root/usr/bin/php8.4` and its extracted runtime libraries. No system dependencies, environment draft or publication were changed.
 
-Before production, back up and upgrade on staging per README. Confirm all three shortcodes with draft, private, password-protected, missing-cover and missing-link books. Test 1–4 columns, tablet/mobile views, keyboard focus, long titles and custom contrast. Verify theme containers permit the intended sticky behavior without covering other controls. Test Gutenberg and Elementor Shortcode blocks/widgets.
+## Unverified / blocked tests
 
-Click saved Amazon/other retailer URLs; inspect 303 responses and aggregate rows; forge URL parameters, invalid nonces, drafts and unsafe retailer destinations. Confirm bot/prefetch/DNT/GPC requests redirect but do not increment; GET requests must not count. Exercise concurrent clicks on one daily row, date boundaries/partial weeks/months, individual books and admin permission checks. Recheck book CRUD, covers, chapter capture/mail/download and lead privacy/export workflows after upgrade.
+No live WordPress/database/SMTP installation was available. Real `dbDelta` upgrades and data preservation from 0.1/0.2/0.3, SQL concurrency, WordPress permissions/REST/nonces/privacy-hook ordering, real PDF upload/MIME/file permissions/HTTP exposure, mail inbox delivery/provider sender behavior, HTTP response headers/caching, WP-Cron, and Gutenberg/Elementor/theme integration are unverified. PHP 8.1 minimum and WordPress 6.5 minimum compatibility need real matrix testing.
 
-## Intentional limits
+A static Chromium layout check was attempted. Browser startup failed in the command sandbox; a supported elevated local retry stalled and exited on its 20-second timeout without DOM results. The assertions on missing DOM output did not pass. This was a browser execution failure, not evidence of a layout defect or success. Responsive visual, screen-reader, keyboard, contrast and sticky-container checks therefore remain unverified. The JS tests validate only behavior through browser API doubles. The static fixture is retained for future local browser review and contains clearly labeled synthetic test text only.
 
-One saved retailer destination per book, grouped by hostname (not a retailer-link picker). Clicks are approximate button interactions, never sales or unique readers. Header-based bot detection can be spoofed. Shared-proxy IPs share limits. Aggregate history persists until removed by a database administrator; no analytics retention UI yet. Cached forms expire with WordPress nonces. Sticky bars are bounded by their theme container. Frontend CSS loads site-wide for builder compatibility. Theme/builder compatibility and final visual polish require live review. Phase 4 remains pending.
+## Known limitations and acceptance gates
+
+- No automated launch broadcasts, mailing-service integration, purchase verification, email deliverability guarantee, CAPTCHA, malware scanning or distributed-abuse guarantee.
+- Preorders use one separate URL per book; normal promotions use one saved Buy Now URL. Analytics reports aggregate approximate clicks, never sales or unique visitors. Counts do not distinguish preorder from normal clicks to the same host.
+- Default verified-lead/waitlist/click retention is indefinite; pending cleanup depends on WP-Cron. At most 100 pending/spam reviews are purged per daily run. Approved reviews and private PDFs require deliberate removal. Deactivation/uninstall preserves data. External CSV/mailing lists/messages/backups require separate handling.
+- Disabling a module retains stored data and admin/privacy tools; issued chapter/waitlist links may still complete. Nonce-cached forms and pages open across a launch deadline may require refresh. Mail scanners can consume bearer links.
+- Review submissions are moderated but do not verify email ownership or book purchases; identity claims require human moderation. Native comment tools/plugins are trusted and can also alter reviews. The plugin eraser deletes matching plugin reviews; test ordering with other privacy plugins before relying on it.
+- Brand name applies to the workspace title; colors apply to frontend promotions/reviews/launches. Theme styles, custom color contrast and container overflow affect the final appearance. Sticky bars are in-flow and container-bounded. Slider is manual, not autoplay. Some new UI strings are English-only; full localization is outstanding.
+- Diagnostics report table presence and configuration signals, not schema correctness, external-file privacy, delivery or production health. Wizard completion is guidance only.
+
+Complete every real-site gate in RELEASE-CHECKLIST.md on staging, using owned test addresses and backups, before promoting this RC to a production release. README.md includes current installation, upgrade, rollback and all shortcode usage instructions.
