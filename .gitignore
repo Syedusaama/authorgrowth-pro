@@ -1,0 +1,3 @@
+/dist/*.zip
+/vendor/
+.env
