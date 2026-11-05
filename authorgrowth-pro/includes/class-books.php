@@ -69,7 +69,7 @@ final class AGP_Books {
   $details = '<div class="agp-book-details">';
   if ( has_post_thumbnail( $id ) ) { $details .= get_the_post_thumbnail( $id, 'medium', array( 'class' => 'agp-book-cover' ) ); }
   if ( $author ) { $details .= '<p>' . esc_html( $author ) . '</p>'; }
-  if ( $url ) { $details .= '<p><a class="wp-element-button" rel="sponsored noopener" href="' . esc_url( $url ) . '">' . esc_html__( 'Buy Now', 'authorgrowth-pro' ) . '</a></p>'; }
+  if ( $url ) { $details .= AGP_Clicks::button( $id, __( 'Buy Now', 'authorgrowth-pro' ) ); }
   return $content . $details . '</div>';
  }
  public static function columns( $columns ) {

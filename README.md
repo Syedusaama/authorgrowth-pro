@@ -1,11 +1,11 @@
 # AuthorGrowth Pro
 
-Premium author marketing plugin, under active development. **Version 0.2.0 implements Phases 1–2.** GPL-2.0-or-later.
+Premium author marketing plugin, under active development. **Version 0.3.0 implements Phases 1–3.** GPL-2.0-or-later.
 
 ## Install
 
 Requires WordPress 6.5+, PHP 8.1+. Back up your site and test on staging first.
-Run `./scripts/package.sh`, then upload `dist/authorgrowth-pro-0.2.0.zip` using Plugins → Add New → Upload Plugin and activate. No Composer, Node, API keys, or paid dependencies are required.
+Run `./scripts/package.sh`, then upload `dist/authorgrowth-pro-0.3.0.zip` using Plugins → Add New → Upload Plugin and activate. No Composer, Node, API keys, or paid dependencies are required.
 
 ## Phase 1 workflow
 
@@ -27,14 +27,14 @@ Before a production release, verify activation/deactivation, dashboard permissio
 
 1. Foundation, dashboard, Book Manager (this release).
 2. Reader leads and free chapter PDF downloads with consent/privacy controls (implemented in 0.2.0).
-3. Promotion widgets/shortcodes and retailer click analytics.
+3. Promotion widgets/shortcodes and retailer click analytics (implemented in 0.3.0).
 4. Launch countdown/waitlist, moderated reviews, branding/settings, expanded integration testing.
 
 Future phases are not implemented and no synthetic lead or analytics metrics appear in the dashboard.
 
 ## Phase 2 — reader leads and private chapters (0.2.0)
 
-Phase 2 adds `[agp_chapter book="123"]` forms, emailed single-use chapter links, admin-only Reader Leads with pagination/deletion, subscriber CSV export, and dashboard counts. Use the shortcode in Gutenberg's Shortcode block or Elementor's Shortcode widget. Phase 1 book editing and front-end details remain intact. Phases 3–4 remain pending.
+Phase 2 adds `[agp_chapter book="123"]` forms, emailed single-use chapter links, admin-only Reader Leads with pagination/deletion, subscriber CSV export, and dashboard counts. Use the shortcode in Gutenberg's Shortcode block or Elementor's Shortcode widget. Phase 1 book editing and front-end details remain intact. Phase 4 remains pending.
 
 ### Private storage setup (required for downloads)
 
@@ -63,3 +63,37 @@ Publish a privacy policy explaining chapter delivery, optional marketing, retent
 ### Phase 2 checks
 
 Run `php tests/books-test.php`, `php tests/leads-test.php`, and `python3 tests/download-test.py` (set `PHP_BIN` if necessary). These tests use doubles. Real mail delivery, SQL schema/migration/concurrency, HTTP headers, WP-Cron/privacy tools, upload handling, and browser integrations still need a real WordPress staging site. Build the updated ZIP with `./scripts/package.sh` → `dist/authorgrowth-pro-0.2.0.zip`.
+
+## Phase 3 — promotion cards and retailer click analytics (0.3.0)
+
+### Install / upgrade
+
+Requires WordPress 6.5+ and PHP 8.1+. Back up the database, private chapter directory and plugin files. On staging, upload `dist/authorgrowth-pro-0.3.0.zip` through Plugins → Add New → Upload Plugin; choose to replace the existing plugin, then activate if inactive. The versioned schema check creates the aggregate clicks table on the next WordPress initialization, including upgrades without reactivation. Existing books, metadata, leads, private PDFs and `AGP_PRIVATE_DIR` are retained. No paid dependencies or external libraries are required. Confirm the Phase 1/2 workflows and table creation before updating production. Restoring an earlier plugin version leaves aggregate data in the database; restore backups for a full rollback.
+
+### Promotion shortcodes
+
+Place these in Gutenberg's Shortcode block, Elementor's Shortcode widget, or a shortcode-enabled theme area:
+
+```text
+[agp_book id="123"]
+[agp_books layout="grid" columns="3"]
+[agp_books ids="123,456" layout="list" limit="10"]
+[agp_floating_cta book="123"]
+[agp_book id="123" color="#F97316" background="#ffffff" text="#17233b" button="Shop the book"]
+```
+
+Cards display the cover (if configured), title, plain-text description/excerpt and retailer button. Grid columns are clamped to 1–4, with responsive tablet/mobile layouts. Collections default to the 12 newest published books, allow 1–50 books, and optionally accept an ordered comma-separated `ids` selection. Draft/private/password-protected books are omitted. A book without a valid retailer URL displays without a Buy Now button. No raw HTML or CSS is accepted in attributes. Choose accessible contrasting colors; theme CSS can further customize the scoped `.agp-promotions` classes.
+
+The floating CTA is a **sticky in-flow bar**, not a viewport-covering popup. Place it in the content area where it should stick; sticky behavior is bounded by the theme's containing element and can be affected by ancestor overflow. Only one bar renders per page. The bar uses the book title and button; full cards include covers and descriptions. Frontend CSS is a small local stylesheet, loaded site-wide to support builder/template shortcodes. No JavaScript is required.
+
+### Click reports and safety
+
+Open AuthorGrowth → Click Analytics as an administrator. Choose 7/30/90 days (inclusive of today), daily/ISO-week/month grouping, and optionally an individual Book ID. Tables show total clicks, periods, retailer hostnames and individual books. Periods at the beginning/end of the selected date range are partial; missing periods have zero clicks and are omitted. All reporting dates are UTC. Book Manager's existing **Buy Now URL** remains the single retailer destination per book; Amazon and other retailers are distinguished by hostname. Updating the saved URL changes future destinations, while historical counts retain the hostname used at click time. There is no multiple-retailer picker in this release.
+
+All plugin Buy Now buttons, including individual book pages, use a nonce-protected POST handler followed by a 303 redirect. The destination is read exclusively from the published book's saved, validated HTTP/HTTPS URL; visitor URL/host parameters are ignored. Embedded credentials, unsafe URL schemes/private destinations (via WordPress URL validation), and unusual ports are rejected. Trusted editors still control retailer URLs and should review them: this is not a retailer-domain allowlist or a safety guarantee about third-party websites. The plugin does not fetch retailer pages or interpret clicks as purchases. External links elsewhere in a theme, raw content, or third-party widgets are not tracked. Exclude shortcode pages from full-page caching, or use a cache lifetime shorter than the WordPress nonce window; stale buttons require reloading a fresh page.
+
+These are **button-click counts, not sales, unique visitors, or confirmed retailer visits**. Known bots, empty bot user agents, prefetch-purpose headers and excessive requests are excluded where detectable; automation can still spoof headers. At most 60 eligible click requests per connection IP per UTC hour count across books. Excluded/limited requests still redirect safely. Counters use keyed IP hashes with the Phase 2 cleanup system; raw IPs, user agents, emails, cookies and per-visitor click histories are not saved in analytics. DNT and Global Privacy Control requests redirect without counting. Aggregated day/book/retailer totals are retained until removed by the site owner/database administrator and survive deactivation/deletion. Document this in your privacy policy. Web server logs and retailer privacy practices are outside this plugin's control.
+
+### Validation
+
+Run the existing suites plus `php tests/promotions-test.php`. See REVIEW.md for executed results and remaining live WordPress/editor/database/browser checks. Build with `./scripts/package.sh` for `dist/authorgrowth-pro-0.3.0.zip`.

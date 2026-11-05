@@ -1,32 +1,35 @@
-# Phase 2 review
+# Phase 3 review
 
-Branch: `development/phase-2`, based on Phase 1 commit `357058e`.
+Branch: `development/phase-3`, based on Phase 2 commit `92b355c`.
 
 ## Delivered
 
-- Existing dashboard, book editing, REST metadata, publishing, covers and Buy Now links retained.
-- Chapter capture shortcode for published, non-password-protected books; optional unchecked marketing consent with recorded wording.
-- Admin-only private PDF upload, reader list with pagination/deletion, subscriber CSV export, and dashboard request/verification/subscriber counts.
-- Emailed random 256-bit links, hashed at rest, expiring in 30 minutes, with an atomic conditional update for single-use delivery.
-- Mandatory private storage outside known public roots, strict generated filenames, canonical path containment, MIME/signature checks, no public attachment URL.
-- Nonce/honeypot validation, per-IP/email atomic hourly counters, CSV formula protection, WordPress privacy export/erase hooks, and daily unverified-lead cleanup.
-- Documentation for setup, mail, consent, privacy/retention, caching, storage, and limitations.
+- Required `[agp_book]`, `[agp_books]`, and `[agp_floating_cta]` shortcodes, responsive grid/list cards, covers/titles/descriptions, selected-book collections, constrained color/button options and one in-flow sticky CTA per page.
+- Existing Book Manager retailer URL powers nonce-protected POST buttons in cards, sticky bars and native single-book content. Server-side destination validation ignores visitor-supplied URLs; only published unprotected books qualify.
+- Aggregate UTC day/book/retailer-host counters, atomic SQL increment, and admin-only reports with 7/30/90-day filters, daily/ISO-week/monthly grouping and individual-book filter. Reports distinguish clicks from sales and unique readers.
+- Known-bot/prefetch exclusions, hashed-IP hourly rate limits, DNT/GPC opt-out and no visitor event log/cookies.
+- Navy/white/orange interface and local lightweight CSS without external libraries or JavaScript dependencies.
+- Existing Phase 1/2 modules retained, with tests rerun. Version 0.3.0 ZIP and installation/upgrade/privacy/shortcode documentation.
 
 ## Executed validation
 
-- PHP 8.4.24 syntax checks on all plugin/test PHP files: passed.
-- Existing Phase 1 suite: 13 assertions passed.
-- Phase 2 suite: 30 assertions passed (capture rejection/success paths, optional/explicit consent, token hashing/expiry, mail failure, rate rejection/fail-closed behavior, CSV protection and private-path containment).
-- Download handler subprocess suite: 6 scenarios passed (PDF bytes streamed; expired/replayed/racing requests, draft book, and missing PDF rejected). Database/API doubles simulate state; this does not prove real SQL concurrency.
+- PHP 8.4.24 syntax checks: all 10 plugin/test PHP files passed.
+- Phase 1 suite: 13 assertions passed.
+- Phase 2 suite: 30 assertions passed; download subprocess suite: 6 scenarios passed.
+- Phase 3 suite: 34 assertions passed for safe destinations, ignoring arbitrary redirect parameters, invalid nonce/method handling, bot/prefetch/DNT/GPC filtering, rate-limited counting without blocking redirects, aggregate-only write parameters, period grouping, public-book visibility, escaping, bounded options/queries, list rendering, sticky deduplication, admin permissions and malformed report filters.
 - Updated ZIP build and `unzip -t`: passed.
 - `git diff --check`: passed.
 
-PHP was provided by the existing locally extracted Debian CLI under `/tmp/agp-php`; no system installation changes or environment draft updates were made.
+These are PHP CLI tests with WordPress/database doubles. PHP uses the previously extracted local Debian CLI under `/tmp/agp-php`. No environment configuration was published or changed.
 
-## Unverified tests / release gates
+## Unverified integration tests / release gates
 
-No live WordPress, database server, configured private hosting directory, or SMTP transport was available. Consequently these remain unverified: activation/upgrade dbDelta and actual SQL behavior/concurrency; admin UI, uploads/fileinfo, HTTP headers and cache behavior; WP-Cron retention and WordPress privacy tools; real inbox delivery; role/nonce/REST integration; Gutenberg/Elementor and theme rendering; minimum PHP 8.1/WordPress 6.5 compatibility. The automated suites use doubles and are not WordPress integration tests.
+No live WordPress/database/mail setup was available. Activation and upgrade schema creation, actual MySQL/MariaDB atomic increments and race handling, HTTP redirect headers, full-page cache/nonce behavior, real theme layouts, browser/mobile/keyboard visuals, Gutenberg/Elementor integration, and minimum PHP 8.1/WordPress 6.5 remain unverified. Phase 1/2 mail delivery, uploads, WordPress permissions/REST behavior, privacy tools and scheduled retention also remain unverified in a live site. CLI double tests do not establish those behaviors.
 
-Before production, configure private storage and SMTP on staging. Verify upload/capture/email/download end to end; replay and expire real links; issue concurrent download requests and confirm only one succeeds. Check optional consent and CSV exclusion of unverified/non-consenting rows; test unauthorized admin actions and invalid nonces. Exercise privacy export/erase, scheduled cleanup, pagination and CSV batches over 500 rows, book unpublishing and password protection, PDF replacement, and all Phase 1 editing/cover/link operations. Confirm private files are inaccessible over HTTP, including server aliases.
+Before production, back up and upgrade on staging per README. Confirm all three shortcodes with draft, private, password-protected, missing-cover and missing-link books. Test 1–4 columns, tablet/mobile views, keyboard focus, long titles and custom contrast. Verify theme containers permit the intended sticky behavior without covering other controls. Test Gutenberg and Elementor Shortcode blocks/widgets.
 
-Email scanners can consume one-use links. Forwarded links act as bearer credentials until used/expired. IP rate limits may apply to a shared proxy; they are not a complete bot defense. PDFs are checked for type, not malware. Site owners must configure HTTPS, privacy policy, retention, and manual withdrawal contact; external mailing lists/CSV copies are not managed by the plugin. Phases 3–4 remain pending.
+Click saved Amazon/other retailer URLs; inspect 303 responses and aggregate rows; forge URL parameters, invalid nonces, drafts and unsafe retailer destinations. Confirm bot/prefetch/DNT/GPC requests redirect but do not increment; GET requests must not count. Exercise concurrent clicks on one daily row, date boundaries/partial weeks/months, individual books and admin permission checks. Recheck book CRUD, covers, chapter capture/mail/download and lead privacy/export workflows after upgrade.
+
+## Intentional limits
+
+One saved retailer destination per book, grouped by hostname (not a retailer-link picker). Clicks are approximate button interactions, never sales or unique readers. Header-based bot detection can be spoofed. Shared-proxy IPs share limits. Aggregate history persists until removed by a database administrator; no analytics retention UI yet. Cached forms expire with WordPress nonces. Sticky bars are bounded by their theme container. Frontend CSS loads site-wide for builder compatibility. Theme/builder compatibility and final visual polish require live review. Phase 4 remains pending.
