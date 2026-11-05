@@ -1,32 +1,32 @@
-# Phase 1 review
+# Phase 2 review
 
-Branch: `development/phase-1`
+Branch: `development/phase-2`, based on Phase 1 commit `357058e`.
 
 ## Delivered
 
-Installable WordPress plugin foundation, responsive dashboard with real native post counts, native Book Manager with draft/publish/scheduling, cover through Featured image, author/ISBN/release date/retailer metadata, REST registration, and public book details with Buy Now link. No paid dependencies. Documentation and reproducible ZIP packaging included.
+- Existing dashboard, book editing, REST metadata, publishing, covers and Buy Now links retained.
+- Chapter capture shortcode for published, non-password-protected books; optional unchecked marketing consent with recorded wording.
+- Admin-only private PDF upload, reader list with pagination/deletion, subscriber CSV export, and dashboard request/verification/subscriber counts.
+- Emailed random 256-bit links, hashed at rest, expiring in 30 minutes, with an atomic conditional update for single-use delivery.
+- Mandatory private storage outside known public roots, strict generated filenames, canonical path containment, MIME/signature checks, no public attachment URL.
+- Nonce/honeypot validation, per-IP/email atomic hourly counters, CSV formula protection, WordPress privacy export/erase hooks, and daily unverified-lead cleanup.
+- Documentation for setup, mail, consent, privacy/retention, caching, storage, and limitations.
 
-## Validation performed
+## Executed validation
 
-- PHP 8.4.24 syntax validation: all 4 PHP files passed.
-- `tests/books-test.php`: 13 isolated assertions passed for URL/date/text validation, malformed input, missing/invalid nonce, permissions, revisions, wrong post type, and metadata whitelist.
-- `scripts/package.sh`: ZIP built; all entries passed `unzip -t`.
+- PHP 8.4.24 syntax checks on all plugin/test PHP files: passed.
+- Existing Phase 1 suite: 13 assertions passed.
+- Phase 2 suite: 30 assertions passed (capture rejection/success paths, optional/explicit consent, token hashing/expiry, mail failure, rate rejection/fail-closed behavior, CSV protection and private-path containment).
+- Download handler subprocess suite: 6 scenarios passed (PDF bytes streamed; expired/replayed/racing requests, draft book, and missing PDF rejected). Database/API doubles simulate state; this does not prove real SQL concurrency.
+- Updated ZIP build and `unzip -t`: passed.
 - `git diff --check`: passed.
 
-PHP was unavailable initially. System package installation was permission denied. Signed Debian package indexes and authenticated packages were used to extract a temporary PHP CLI under `/tmp/agp-php`; no TLS/signature checks were disabled. Tests can be repeated with any installed PHP 8.1+ using README commands.
+PHP was provided by the existing locally extracted Debian CLI under `/tmp/agp-php`; no system installation changes or environment draft updates were made.
 
-## Unverified release gates
+## Unverified tests / release gates
 
-No live WordPress/database installation was available. Unit tests use API doubles and do not verify WordPress internals. Activation, dashboard rendering/counts, editor/media operations, REST requests, front-end templates, real role behavior, Gutenberg, and Elementor compatibility remain unverified. A ZIP integrity check verifies packaging, not WordPress activation. PHP 8.1 and WordPress 6.5 minimum-version compatibility also require a runtime matrix before production release.
+No live WordPress, database server, configured private hosting directory, or SMTP transport was available. Consequently these remain unverified: activation/upgrade dbDelta and actual SQL behavior/concurrency; admin UI, uploads/fileinfo, HTTP headers and cache behavior; WP-Cron retention and WordPress privacy tools; real inbox delivery; role/nonce/REST integration; Gutenberg/Elementor and theme rendering; minimum PHP 8.1/WordPress 6.5 compatibility. The automated suites use doubles and are not WordPress integration tests.
 
-Do not market this Phase 1 build as the complete premium product. Phases 2–4 remain pending. No leads, downloads, widgets, shortcodes, analytics, launches, testimonials, or custom branding settings are implemented.
+Before production, configure private storage and SMTP on staging. Verify upload/capture/email/download end to end; replay and expire real links; issue concurrent download requests and confirm only one succeeds. Check optional consent and CSV exclusion of unverified/non-consenting rows; test unauthorized admin actions and invalid nonces. Exercise privacy export/erase, scheduled cleanup, pagination and CSV batches over 500 rows, book unpublishing and password protection, PDF replacement, and all Phase 1 editing/cover/link operations. Confirm private files are inaccessible over HTTP, including server aliases.
 
-## Manual review on WordPress
-
-1. Upload ZIP, activate, and verify Books archive and individual pages with permalinks.
-2. Create a draft with cover and all fields; publish, edit, schedule, trash, restore.
-3. Confirm invalid dates/URLs clear; HTML in text displays safely.
-4. Verify contributors cannot publish, authors cannot edit others' books, and subscribers cannot access the dashboard. Reject saves with invalid nonce and unauthorized REST updates.
-5. View password-protected and draft/private books while logged out; metadata must not reveal protected content.
-6. Confirm Gutenberg editing and Elementor Books opt-in on the target theme.
-7. Deactivate/reactivate and confirm data retention. Check responsive layout, keyboard navigation, and translations.
+Email scanners can consume one-use links. Forwarded links act as bearer credentials until used/expired. IP rate limits may apply to a shared proxy; they are not a complete bot defense. PDFs are checked for type, not malware. Site owners must configure HTTPS, privacy policy, retention, and manual withdrawal contact; external mailing lists/CSV copies are not managed by the plugin. Phases 3–4 remain pending.
