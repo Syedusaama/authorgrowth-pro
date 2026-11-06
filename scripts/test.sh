@@ -9,3 +9,10 @@ python3 tests/download-test.py
 python3 tests/private-storage-test.py
 node --check authorgrowth-pro/assets/release.js
 node tests/release-js-test.cjs
+
+if [ -n "${WP_CORE_DIR:-}" ]; then
+ "$PHP_BIN" -n tests/admin-menu-test.php --legacy
+ "$PHP_BIN" -n tests/admin-menu-test.php
+else
+ printf '%s\n' 'SKIP: WordPress-core admin menu regression (set WP_CORE_DIR to a WordPress source tree; see ADMIN-FIX.md).'
+fi

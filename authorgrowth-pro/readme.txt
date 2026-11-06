@@ -3,7 +3,7 @@ Contributors: authorgrowthpro
 Tags: books, authors, marketing, reviews
 Requires at least: 6.5
 Requires PHP: 8.1
-Stable tag: 0.4.0-rc.1
+Stable tag: 0.4.0-rc.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,6 +40,8 @@ Back up before replacing earlier versions. Versioned initialization creates miss
 No analytics cookies or visitor click log. Aggregate counts are stored by UTC date, book and retailer host. Short-lived rate counters use keyed hashes of connection IP/email; server/retailer logs are outside plugin control. Leads/waitlists store email, purpose/consent text, request/verification times and hashed expiring tokens. Reviews store public name/text/optional rating, private email and publication consent. WordPress privacy export/erase is integrated. External mailing lists/CSV copies/backups require separate management. Private PDFs and approved reviews are not retention-deleted automatically.
 
 == Changelog ==
+= 0.4.0-rc.2 =
+Fix submenu routing and access errors by registering the parent menu before child pages. Capabilities, slugs, callbacks, data and schemas are unchanged. No permalink reset or reactivation is needed.
 = 0.4.0-rc.1 =
 Launch countdown/preorders/verified waitlists, moderated reader reviews/manual sliders, global settings/modules/sender/retention, diagnostics, setup wizard and release checks. Real-site validation required.
 

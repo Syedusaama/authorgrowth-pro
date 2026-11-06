@@ -3,7 +3,9 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 final class AGP_Dashboard {
  public static function hooks() {
-  add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+  // Submenus resolve their hook names from the parent registered here.
+  // All module submenus use priority 10; the parent must exist first.
+  add_action( 'admin_menu', array( __CLASS__, 'menu' ), 5 );
   add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
  }
  public static function menu() {

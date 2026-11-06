@@ -1,11 +1,11 @@
 # AuthorGrowth Pro
 
-Premium author marketing plugin, under active development. **Version 0.4.0-rc.1 implements Phases 1–4 for review. Not production-certified.** GPL-2.0-or-later.
+Premium author marketing plugin, under active development. **Version 0.4.0-rc.2 includes the admin navigation hotfix. Not production-certified.** GPL-2.0-or-later.
 
 ## Install
 
 Requires WordPress 6.5+, PHP 8.1+. Back up your site and test on staging first.
-Run `./scripts/package.sh`, then upload `dist/authorgrowth-pro-0.4.0-rc.1.zip` using Plugins → Add New → Upload Plugin and activate. No Composer, Node, API keys, or paid dependencies are required.
+Run `./scripts/package.sh`, then upload `dist/authorgrowth-pro-0.4.0-rc.2.zip` using Plugins → Add New → Upload Plugin and activate. No Composer, Node, API keys, or paid dependencies are required.
 
 ## Phase 1 workflow
 
@@ -143,3 +143,14 @@ Daily cleanup defaults: unverified chapter/waitlist entries after 7 days; pendin
 Build with `./scripts/package.sh` and upload `dist/authorgrowth-pro-0.4.0-rc.1.zip` through Plugins → Add New → Upload Plugin. For upgrades from 0.1/0.2/0.3, back up the database and private PDFs, upload and replace the old plugin, then activate if inactive. Versioned initialization creates missing lead/click/waitlist tables without requiring reactivation; existing metadata/data is retained. Reviews use core comments tables. Missing-table failures are retried rather than marked installed. Check diagnostics and server logs after upgrade. Do not delete existing plugin data or expose PDFs to make an upgrade pass. Restore database/files from backup for full rollback; replacing plugin PHP alone does not undo schema/settings changes or retention deletions. Deactivation clears the daily cleanup event and retains data; subsequent use schedules it again. Uninstall retains data intentionally.
 
 Run all automated suites with `./scripts/test.sh` (PHP 8.1+, Python 3 and Node required). Set `PHP_BIN` if PHP is not on PATH. These tests use WordPress/database doubles; simulated upgrade contracts do not prove a real `dbDelta` migration. `tests/render-fixture.php` generates a **static synthetic testing fixture only**, never live reviews, for browser layout checks. See RELEASE-CHECKLIST.md for WordPress/Gutenberg/Elementor, upgrades, mail, PDF, responsive/accessibility and security review. REVIEW.md records actual results and unverified tests. Only publish a production release after the real-site gates pass.
+
+
+## Admin navigation hotfix — 0.4.0-rc.2
+
+This patch fixes all six protected submenu routes without changing slugs, capabilities, data, schemas or features. The top-level menu now registers at `admin_menu` priority 5, before module submenus at priority 10. See ADMIN-FIX.md for the reproduced root cause and tests.
+
+Back up the database and private chapter files, then upload `dist/authorgrowth-pro-0.4.0-rc.2.zip` through Plugins → Add New → Upload Plugin and replace the installed AuthorGrowth Pro plugin. Confirm version 0.4.0-rc.2 in Plugins, then reload the admin page while signed in as a user with `manage_options`. Reactivation, data deletion, role changes and permalink flushing are unnecessary. Existing books/leads/reviews/waitlists/clicks/settings/private PDFs remain unchanged. Purge PHP OPcache through your host only if it continues executing the old version after replacement; do not disable capability checks.
+
+Verify Dashboard and Books, then Reader Leads, Click Analytics, Launch Waitlist, Reader Reviews, Settings and Setup Wizard. Each custom sidebar link must use `admin.php?page=...`. Users without `manage_options` should still be denied the protected pages. If a problem persists, record the full URL, installed version and user's actual capabilities; on a backed-up staging clone test menu/security plugins individually and inspect host redirects/server logs. This patch reproduces/fixes an intrinsic registration-order defect but cannot rule out additional site-specific plugins or rewriting.
+
+For the core-routing regression tests, set `WP_CORE_DIR` to a trusted WordPress source tree containing `wp-includes/plugin.php`, `wp-includes/class-wp-hook.php`, `wp-admin/includes/plugin.php` and `wp-admin/menu-header.php`, then run `WP_CORE_DIR=/path/to/wordpress ./scripts/test.sh`. The test uses unmodified WordPress menu/hook/sidebar code with a simulated capability resolver and no database. It checks the old failure and fixed behavior for every submenu. Without that source tree the core-dependent tests explicitly report SKIP; other suites still run. Full installed-site testing remains required.

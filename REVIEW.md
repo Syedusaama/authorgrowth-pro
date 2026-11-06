@@ -1,3 +1,11 @@
+# Admin hotfix update — 0.4.0-rc.2
+
+The targeted navigation fix on `development/admin-fix` registers the parent menu before its submenus. See [ADMIN-FIX.md](ADMIN-FIX.md) for root cause, unchanged capabilities, installation and audit details.
+
+Executed: 26 assertions reproducing the old failure with actual WordPress 6.5 menu code; 173 fixed-routing/permissions assertions; all existing 179 PHP assertions, 11 download/storage scenarios and 7 JS assertions; syntax checks for all 18 PHP files and JS; ZIP integrity and source/version checks. No data/schema/feature changes. The affected live site's other plugins, rewriting and browser behavior remain unverified. Earlier Phase 4 test limitations below still apply.
+
+---
+
 # AuthorGrowth Pro 0.4.0-rc.1 — review candidate
 
 Branch: `development/phase-4`, based on Phase 3 commit `6cf1349`. This is not a production-readiness certification.
